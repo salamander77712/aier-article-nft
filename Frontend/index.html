@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="elements.js"></script>
+<script src="useful.js"></script>
+<script src="contract.js"></script>
+<script src="web3.min.js"></script>
+</head>
+<body>
+<div id= 'root'></div>
+<script>
+//instatiate contract
+const web3 = new Web3(Web3.givenProvider);
+var contractAddress = "0x190Bd8f93Ab77D0816FB0EE07598491e2B6B8c1E";
+Contract = web3.eth.Contract;
+Contract.setProvider('HTTP://127.0.0.1:7545');
+var contract = new Contract(contractData.abi, contractAddress);
+</script>
+<script>
+//get user address
+var userAccount;
+function getAccounts(callback) {
+    web3.eth.getAccounts((error,result) => {
+        if (error) {
+            console.log(error);
+        } else {
+            try{
+            callback(result);
+            }
+            catch{
+            }
+        }
+    });
+}
+getAccounts(function(result) {
+    userAccount = result[0];
+});
+getAccounts();
+//check if user has changed address every 5 seconds
+const interval = setInterval(function() {
+   getAccounts();
+ }, 5000);
+</script>
+<script>
+//functions to interact with blockchain
+function getTokenURI(id){
+    return contract.methods.tokenURI(id).call();
+}
+function createArticle(stub, author){
+    contract.methods.mint(stub, author).send({ from: userAccount, gas: 300000 });
+}
+function getTokenOwner(id){
+    return contract.methods.ownerOf(id).call();
+}
+function makeAuthor(name, address){
+    contract.methods.addAuthor(name, address).send({ from: userAccount, gas: 300000 });
+}
+function changePayoutAddress(address){
+    contract.methods.setPayoutAddress(address).send({ from: userAccount, gas: 300000 });
+}
+function createAuction(id, days=1){
+    contract.methods.auctionToken(id, days).send({ from: userAccount, gas: 300000 });
+}
+function bidOnAuction(id, amount){
+    contract.methods.bidOnAuction(id).send({ from: userAccount, gas: 300000, value:  Web3.utils.toWei(amount, 'ether') });
+}
+function finishAuction(id){
+    contract.methods.finishAuction(id).send({ from: userAccount, gas: 300000 });
+}
+</script>
+<script>
+class TestingPage extends ElementGroup{
+    constructor(){
+        super('test-page');
+    }
+    setup = () =>{
+        this.addElement(new LabeledTextField(this.id + '-stub-text-field', 'Article Stub:', this.id)); // 0
+        this.addElement(new LabeledTextField(this.id + '-author-text-field', 'Author ID:', this.id)); // 1
+        this.addElement(new Button(this.id + '-create-article-button', this.createArticle, 'Create Article', '', this.id)); // 2
+        this.addElement(new LabeledTextField(this.id + '-token-id-text-field-1', 'Token ID:', this.id)); // 3
+        this.addElement(new Button(this.id + '-get-token-uri-button', this.getTokenURI, 'Get Token URI', '', this.id)); // 4
+        this.addElement(new BR(this.id + '-br-1', '', this.id)); // 5
+        this.addElement(new Link(this.id + '-token-uri-link', '', 'No Token Selected', '', this.id)); // 6
+        this.addElement(new LabeledTextField(this.id + '-token-id-text-field-2', 'Token ID:', this.id)); // 7
+        this.addElement(new Button(this.id + '-get-token-owner-button', this.getTokenOwner, 'Get Token Owner', '', this.id)); // 8
+        this.addElement(new Paragraph(this.id + '-token-owner-paragraph', '', this.id)); // 9
+        this.addElement(new LabeledTextField(this.id + '-author-name-text-field', 'Author Name:', this.id)); // 10
+        this.addElement(new LabeledTextField(this.id + '-author-address-text-field', 'Author Address:', this.id)); // 11
+        this.addElement(new Button(this.id + '-make-author-button', this.makeAuthor, 'Add Author', '', this.id)); // 12
+        this.addElement(new LabeledTextField(this.id + '-token-di-aution-text-field', 'Token ID:', this.id)); // 13
+        this.addElement(new Button(this.id + '-make-author-button', this.makeAuction, 'Auction Token', '', this.id)); // 14
+        this.addElement(new LabeledTextField(this.id + '-auction-id-bid-text-field', 'Auction ID:', this.id)); // 15
+        this.addElement(new LabeledTextField(this.id + '-auction-bid-amount-text-field', 'Bid Amount:', this.id)); // 16
+        this.addElement(new Button(this.id + '-bid-on-auction-button', this.bidOnAuction, 'Bid', '', this.id)); // 17
+        this.addElement(new LabeledTextField(this.id + '-auction-it-finish-text-field', 'Auction ID:', this.id)); // 18
+        this.addElement(new Button(this.id + '-finish-auction-button', this.finishAuction, 'Claim', '', this.id)); // 19
+        this.addElement(new LabeledTextField(this.id + '-payout-address-text-field', 'Address:', this.id)); // 20
+        this.addElement(new Button(this.id + '-chnage-payout-address-button', this.changePayoutAddress, 'Change Payout Address', '', this.id)); // 21
+    }
+    createArticle = () =>{
+        createArticle(this.elements[0].getValue(), this.elements[1].getValue());
+    }
+    getTokenURI = () =>{
+        this.elements[6].changeText('Pending...');
+        getTokenURI(parseInt(this.elements[3].getValue())).then(data =>{
+            this.elements[6].changeLink(data);
+            this.elements[6].changeText('URI of token ' + this.elements[3].getValue());
+        });
+    }
+    getTokenOwner = () =>{
+        this.elements[9].changeText('Pending...');
+        getTokenOwner(parseInt(this.elements[7].getValue())).then( data =>{
+            this.elements[9].changeText('The of owner of token ' + this.elements[7].getValue() + ' is ' + data);
+        });
+    }
+    makeAuthor = () =>{
+        makeAuthor(this.elements[10].getValue(), this.elements[11].getValue());
+    }
+    makeAuction = () =>{
+        createAuction(this.elements[13].getValue());
+    }
+    bidOnAuction = () =>{
+        bidOnAuction(this.elements[15].getValue(), this.elements[16].getValue());
+    }
+    finishAuction = () =>{
+        finishAuction(this.elements[18].getValue());
+    }
+    changePayoutAddress = () =>{
+        changePayoutAddress(this.elements[20].getValue());
+    }
+}
+testingPage = new TestingPage();
+testingPage.display();
+</script>
+<script>
+//connect metamask
+</script>
+</body>
+</html>
